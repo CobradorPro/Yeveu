@@ -1,162 +1,137 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Consulta Pro — Intelligence Platform</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYS // CONSULTA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Ambient background -->
-  <div class="ambient-bg">
-    <div class="ambient-orb orb-1"></div>
-    <div class="ambient-orb orb-2"></div>
-    <div class="grid-overlay"></div>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tl">
+      <span class="logo-spin">◈</span>
+      <span class="logo-name">SYS<span class="logo-sep">//</span>CONSULTA</span>
+    </div>
+    <div class="tr">
+      <div class="status-pill">
+        <div class="sdot" id="sdot"></div>
+        <span class="slabel" id="slabel">CONECTANDO</span>
+      </div>
+      <button class="tbtn" id="tbtn">◐</button>
+    </div>
+  </header>
+
+  <!-- AUTH BANNER -->
+  <div class="auth-banner" id="auth-banner">
+    <span class="ab-dot"></span>
+    <span id="ab-text">AGUARDANDO CÓDIGO</span>
   </div>
 
-  <!-- App Shell -->
-  <div class="app-shell">
+  <!-- MAIN -->
+  <main class="main">
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+    <!-- CHAT -->
+    <section class="chat">
+
+      <div class="chat-head">
+        <div>
+          <h1 class="ct">TERMINAL</h1>
+          <p class="cs">Consulta integrada via Telegram</p>
         </div>
-        <div class="brand-text">
-          <span class="brand-name">Consulta Pro</span>
-          <span class="brand-tag">v2.1</span>
+        <div class="sess">
+          <span class="sess-l">SESSION</span>
+          <span id="sess-id">--</span>
         </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <span class="nav-label">Comandos</span>
-        <button class="nav-cmd active" data-cmd="/placa ">
-          <span class="cmd-icon">🚗</span>
-          <div class="cmd-info">
-            <span class="cmd-name">Placa</span>
-            <span class="cmd-desc">/placa [número]</span>
-          </div>
-        </button>
-        <button class="nav-cmd" data-cmd="/nome ">
-          <span class="cmd-icon">👤</span>
-          <div class="cmd-info">
-            <span class="cmd-name">Nome</span>
-            <span class="cmd-desc">/nome [nome completo]</span>
-          </div>
-        </button>
-        <button class="nav-cmd" data-cmd="/cpf ">
-          <span class="cmd-icon">🪪</span>
-          <div class="cmd-info">
-            <span class="cmd-name">CPF</span>
-            <span class="cmd-desc">/cpf [documento]</span>
-          </div>
-        </button>
-      </nav>
+      <div class="msgs" id="msgs"></div>
 
-      <div class="sidebar-footer">
-        <div class="status-dot"></div>
-        <span>Backend conectado</span>
+      <div class="typing" id="typing">
+        <span class="td"></span><span class="td"></span><span class="td"></span>
+        <span id="typing-txt">aguardando...</span>
+      </div>
+
+      <div class="inp-area">
+
+        <div class="inp-mode" id="inp-mode">
+          <span id="inp-mode-icon">🔐</span>
+          <span id="inp-mode-txt">MODO AUTENTICAÇÃO</span>
+        </div>
+
+        <div class="inp-row" id="inp-row">
+          <span class="inp-pre" id="inp-pre">›</span>
+          <input
+            id="inp"
+            type="text"
+            placeholder="Digite um comando:  /placa  /nome  /cpf"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <button id="sbtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+
+        <div class="hints" id="hints">
+          <span data-v="/placa ">/placa [ABC1234]</span>
+          <span data-v="/nome ">/nome [Nome]</span>
+          <span data-v="/cpf ">/cpf [CPF]</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- OUTPUT -->
+    <aside class="output">
+      <div class="out-inner">
+
+        <div class="out-head">
+          <span class="out-tag">OUTPUT</span>
+          <div class="scan"></div>
+        </div>
+
+        <div class="out-empty" id="out-empty">
+          <div class="empty-ico">⬡</div>
+          <p>Aguardando consulta</p>
+          <small>Os resultados aparecerão aqui</small>
+        </div>
+
+        <div class="out-auth" id="out-auth">
+          <div class="auth-ico">◉</div>
+          <p class="auth-tit">AUTENTICAÇÃO</p>
+          <small id="auth-desc">Verificação necessária</small>
+          <div class="steps">
+            <div class="step" id="s1"><div class="sdotauth"></div><span>Enviar código SMS</span></div>
+            <div class="step" id="s2"><div class="sdotauth"></div><span>Verificar código</span></div>
+            <div class="step" id="s3"><div class="sdotauth"></div><span>Sessão salva</span></div>
+          </div>
+        </div>
+
+        <div class="out-data" id="out-data">
+          <div class="data-badge" id="data-badge">RESULTADO</div>
+          <div class="data-fields" id="data-fields"></div>
+          <div class="data-ts" id="data-ts"></div>
+        </div>
+
+        <div class="pulse" id="pulse"></div>
       </div>
     </aside>
 
-    <!-- Main Panel -->
-    <main class="main-panel">
+  </main>
 
-      <!-- Header -->
-      <header class="chat-header">
-        <div class="header-left">
-          <div class="header-avatar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="header-title">Intelligence Terminal</h1>
-            <p class="header-subtitle">Consulta veicular e cadastral em tempo real</p>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="header-stat">
-            <span class="stat-num" id="queryCount">0</span>
-            <span class="stat-lbl">consultas</span>
-          </div>
-          <div class="header-divider"></div>
-          <button class="btn-clear" id="btnClear" title="Limpar conversa">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- Chat Window -->
-      <div class="chat-window" id="chatWindow">
-        <div class="chat-messages" id="chatMessages">
-
-          <!-- Welcome State -->
-          <div class="welcome-state" id="welcomeState">
-            <div class="welcome-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
-                <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <h2 class="welcome-title">Pronto para consultar</h2>
-            <p class="welcome-desc">Digite um comando ou selecione um atalho no painel lateral para iniciar uma consulta.</p>
-            <div class="welcome-chips">
-              <button class="chip" data-cmd="/placa FLR7671">/placa FLR7671</button>
-              <button class="chip" data-cmd="/nome João Silva">/nome João Silva</button>
-              <button class="chip" data-cmd="/cpf 12345678900">/cpf 12345678900</button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Input Area -->
-      <div class="input-area">
-        <div class="input-wrapper">
-          <div class="input-prefix" id="inputPrefix">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <input
-            type="text"
-            id="chatInput"
-            class="chat-input"
-            placeholder="Digite /placa, /nome ou /cpf..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button class="send-btn" id="sendBtn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="input-hint">
-          <span>Pressione <kbd>Enter</kbd> para enviar</span>
-          <span class="hint-sep">·</span>
-          <span id="apiEndpoint" class="api-url">http://localhost:5000/chat</span>
-        </div>
-      </div>
-
-    </main>
-  </div>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="script.js"></script>
 </body>
-</html>
+  </html>
+  
