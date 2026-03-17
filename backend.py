@@ -1,17 +1,12 @@
 """
 SYS//CONSULTA - Backend
-Baseado no script original que funciona.
+Usa StringSession fixa — sem precisar de SMS nunca mais.
 
-PRIMEIRO USO:
-  1. pip install -r requirements.txt
-  2. python backend.py
-  3. Abra http://localhost:5000
-  4. O chat vai pedir o código SMS do Telegram
-  5. Digite o código — sessão salva em jarvis_session.session
-
-PRÓXIMOS USOS:
-  - python backend.py → conecta direto, sem pedir nada
-  - Para usar em outra máquina: copie jarvis_session.session junto
+COMO USAR:
+  1. No seu computador, rode:  python gerar_sessao.py
+  2. Copie a string gerada
+  3. Cole em SESSION_STRING abaixo
+  4. Faça o deploy — conecta direto, sem pedir código
 """
 
 import asyncio
@@ -23,7 +18,7 @@ import logging
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from telethon import TelegramClient, events
-from telethon.errors import SessionPasswordNeededError
+from telethon.sessions import StringSession
 
 # ── Logging ───────────────────────────────────────────────────
 logging.basicConfig(
@@ -33,13 +28,18 @@ logging.basicConfig(
 )
 log = logging.getLogger("jarvis")
 
-# ── Credenciais (igual ao seu script original) ────────────────
-api_id   = 34303434
-api_hash = "5d521f53f9721a6376586a014b51173d"
-phone    = "+5541974010817"
-grupo    = -1002421438612
-chave    = "Skibidi toilet gamer Sigma redz Pill 1234"
+# ── Credenciais ───────────────────────────────────────────────
+API_ID   = 34303434
+API_HASH = "5d521f53f9721a6376586a014b51173d"
+PHONE    = "+5541974010817"
+GRUPO    = -1002421438612
+CHAVE    = "Skibidi toilet gamer Sigma redz Pill 1234"
 PORT     = int(os.environ.get("PORT", 5000))
+
+# ── COLE SUA SESSION_STRING AQUI ──────────────────────────────
+# Gere rodando: python gerar_sessao.py
+# Deixe vazio ("") se ainda não gerou — vai pedir pelo chat
+SESSION_STRING = "1AZWarzwBu4dCV8v3it5AT-cmvzem1XLR9uhXhNxX3tHUM5GBwoL_r1DRZ8c01YWq2hqu4to-bn6FO51UmGNoDh4tr-b6XCjPnJamW6jfIrlvtgmsNZWSDKuWphfyQVCelPHqNXvEhLH8mDSgZEjF95dRHIi2c3-2uEqPsWcL_437MsgUIfq1GElkir_7r_YuiAKmyHG1XZatZI0EPMIJ9Ao61qR7K_eK1pgW8xEs5CGN_Liedq0qGaS6GRPk-T4JrPMMz6qlm9VLZgqc7fS2n_egXlG8dYlrbnKdZ_oBoQpmYkbws0pJTTElk7gr7dx8k36rKCKGRM7-eNOD3N9O5FoPa0770fA="
 
 # ── Flask ─────────────────────────────────────────────────────
 app = Flask(__name__, static_folder="static", static_url_path="")
@@ -48,19 +48,19 @@ CORS(app)
 # ── Estado global ─────────────────────────────────────────────
 _loop           = None
 _client         = None
-_pending        = {}           # { session_id: asyncio.Future }
+_pending        = {}
 _telegram_ready = threading.Event()
 
 _auth = {
-    "step":        None,       # None | "code" | "2fa" | "done"
-    "code_hash":   None,
-    "code_fut":    None,
-    "twofa_fut":   None,
-    "error":       None,
+    "step":      None,
+    "code_hash": None,
+    "code_fut":  None,
+    "twofa_fut": None,
+    "error":     None,
 }
 
 # ══════════════════════════════════════════════════════════════
-# LIMPEZA DE TEXTO (igual ao script original)
+# LIMPEZA DE TEXTO
 # ══════════════════════════════════════════════════════════════
 
 def limpar_texto(texto):
@@ -92,7 +92,7 @@ def parse_campos(texto):
     return campos if campos else {"RESULTADO": texto}
 
 # ══════════════════════════════════════════════════════════════
-# ROTAS FLASK
+# ROTAS
 # ══════════════════════════════════════════════════════════════
 
 @app.route("/")
@@ -168,14 +168,14 @@ def api_query():
         return jsonify({"error": str(e)}), 500
 
 # ══════════════════════════════════════════════════════════════
-# LÓGICA ASSÍNCRONA
+# ASYNC — envio e recebimento
 # ══════════════════════════════════════════════════════════════
 
 async def _enviar_aguardar(comando, sess, timeout):
     future = _loop.create_future()
     _pending[sess] = future
     try:
-        await _client.send_message(grupo, comando)
+        await _client.send_message(GRUPO, comando)
         log.info("Mensagem enviada: %s", comando)
         return await asyncio.wait_for(asyncio.shield(future), timeout=timeout)
     except asyncio.TimeoutError:
@@ -184,9 +184,8 @@ async def _enviar_aguardar(comando, sess, timeout):
         _pending.pop(sess, None)
 
 def _setup_handlers():
-    @_client.on(events.NewMessage(chats=grupo))
+    @_client.on(events.NewMessage(chats=GRUPO))
     async def handler(event):
-        # Mesmo padrão do script original
         if not event.message.document:
             return
 
@@ -199,30 +198,28 @@ def _setup_handlers():
             with open(caminho, "r", encoding="utf-8", errors="ignore") as f:
                 texto = f.read()
 
-            if chave and chave in texto:
-                texto = texto.split(chave, 1)[1]
+            if CHAVE and CHAVE in texto:
+                texto = texto.split(CHAVE, 1)[1]
 
             texto = limpar_texto(texto)
             dados = parse_campos(texto)
 
-            log.info("Campos extraidos: %s", list(dados.keys()))
+            log.info("Campos: %s", list(dados.keys()))
 
-            # Entrega ao primeiro Future pendente (FIFO)
             for sid, future in list(_pending.items()):
                 if not future.done():
                     future.set_result(dados)
                     log.info("Resultado -> sessao %s", sid)
                     break
             else:
-                log.warning("Arquivo recebido mas sem consulta pendente.")
+                log.warning("Arquivo sem consulta pendente.")
 
         except Exception as e:
-            log.error("Erro ao processar arquivo: %s", e)
+            log.error("Erro ao processar: %s", e)
             for sid, future in list(_pending.items()):
                 if not future.done():
                     future.set_exception(Exception(str(e)))
                     break
-
         finally:
             if caminho and os.path.exists(caminho):
                 try:
@@ -231,40 +228,63 @@ def _setup_handlers():
                     pass
 
 # ══════════════════════════════════════════════════════════════
-# AUTENTICAÇÃO PELO CHAT (primeiro uso)
+# AUTH PELO CHAT (só quando SESSION_STRING está vazia)
 # ══════════════════════════════════════════════════════════════
 
 async def _autenticar():
     try:
-        log.info("Enviando codigo SMS para %s...", phone)
-        result = await _client.send_code_request(phone)
-        _auth["code_hash"] = result.phone_code_hash
+        from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, FloodWaitError
 
-        # Sinaliza ao frontend
+        try:
+            result = await _client.send_code_request(PHONE)
+        except FloodWaitError as e:
+            _auth["error"] = "Telegram bloqueou temporariamente. Aguarde %d segundos e tente novamente." % e.seconds
+            _auth["step"]  = None
+            log.error("FloodWait: %d segundos", e.seconds)
+            return False
+
+        _auth["code_hash"] = result.phone_code_hash
+        log.info("Codigo SMS enviado para %s", PHONE)
+
         _auth["code_fut"] = _loop.create_future()
         _auth["step"]     = "code"
         _auth["error"]    = None
 
-        log.info("Aguardando codigo via chat...")
         codigo = await asyncio.wait_for(_auth["code_fut"], timeout=300)
         _auth["step"] = None
 
         try:
             await _client.sign_in(
-                phone=phone,
+                phone=PHONE,
                 code=codigo,
                 phone_code_hash=_auth["code_hash"]
             )
-
         except SessionPasswordNeededError:
-            log.info("2FA ativado — aguardando senha via chat...")
+            log.info("2FA necessario")
             _auth["twofa_fut"] = _loop.create_future()
             _auth["step"]      = "2fa"
             _auth["error"]     = None
-
             senha = await asyncio.wait_for(_auth["twofa_fut"], timeout=300)
             _auth["step"] = None
             await _client.sign_in(password=senha)
+
+        except PhoneCodeInvalidError:
+            _auth["error"] = "Codigo incorreto. Tente novamente."
+            _auth["step"]  = "code"
+            _auth["code_fut"] = _loop.create_future()
+            codigo = await asyncio.wait_for(_auth["code_fut"], timeout=300)
+            _auth["step"] = None
+            await _client.sign_in(
+                phone=PHONE, code=codigo,
+                phone_code_hash=_auth["code_hash"]
+            )
+
+        # Salva a session string no log para você copiar
+        s = _client.session.save()
+        log.info("="*50)
+        log.info("SESSION_STRING GERADA — COPIE E COLE NO backend.py:")
+        log.info(s)
+        log.info("="*50)
 
         _auth["step"]  = "done"
         _auth["error"] = None
@@ -274,17 +294,15 @@ async def _autenticar():
     except asyncio.TimeoutError:
         _auth["error"] = "Tempo esgotado. Reinicie o servidor."
         _auth["step"]  = None
-        log.error("Timeout na autenticacao")
         return False
-
     except Exception as e:
         _auth["error"] = str(e)
         _auth["step"]  = None
-        log.error("Erro na autenticacao: %s", e)
+        log.error("Erro auth: %s", e)
         return False
 
 # ══════════════════════════════════════════════════════════════
-# THREAD DO TELEGRAM
+# THREAD TELEGRAM
 # ══════════════════════════════════════════════════════════════
 
 def _run_telegram():
@@ -295,22 +313,26 @@ def _run_telegram():
     _loop = asyncio.new_event_loop()
     asyncio.set_event_loop(_loop)
 
-    # Usa session file igual ao script original (jarvis_session.session)
-    _client = TelegramClient("jarvis_session", api_id, api_hash, loop=_loop)
+    # Usa SESSION_STRING se disponível, senão arquivo local
+    if SESSION_STRING and SESSION_STRING.strip():
+        session = StringSession(SESSION_STRING)
+        log.info("Usando SESSION_STRING hardcoded")
+    else:
+        session = "jarvis_session"
+        log.info("Usando arquivo jarvis_session.session")
+
+    _client = TelegramClient(session, API_ID, API_HASH, loop=_loop)
 
     async def _start():
-        # client.start() com callback para pegar o código via chat
-        # Se já tem sessão salva: conecta direto
-        # Se não tem: chama _autenticar() que pede pelo chat
         await _client.connect()
 
         if await _client.is_user_authorized():
-            log.info("Sessao valida — conectando automaticamente...")
+            log.info("Sessao valida — login automatico")
         else:
-            log.info("Sem sessao — iniciando autenticacao pelo chat...")
+            log.info("Sem sessao — iniciando auth pelo chat...")
             ok = await _autenticar()
             if not ok:
-                log.error("Autenticacao falhou — Telegram indisponivel")
+                log.error("Auth falhou")
                 return
 
         me = await _client.get_me()
@@ -324,7 +346,7 @@ def _run_telegram():
     try:
         _loop.run_until_complete(_start())
     except Exception as e:
-        log.error("Erro critico no Telegram: %s", e)
+        log.error("Erro critico: %s", e)
 
 # ══════════════════════════════════════════════════════════════
 # MAIN
@@ -336,9 +358,7 @@ if __name__ == "__main__":
 ║   SYS//CONSULTA  —  iniciando...     ║
 ╚══════════════════════════════════════╝
 """)
-    t = threading.Thread(target=_run_telegram, daemon=True)
-    t.start()
-
+    threading.Thread(target=_run_telegram, daemon=True).start()
     log.info("Servidor em http://0.0.0.0:%d", PORT)
     app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
       
