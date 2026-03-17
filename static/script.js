@@ -6,10 +6,6 @@
 const API_BASE = '';
 
 // ── DOM ───────────────────────────────────────────────────────
-const bootScreen      = document.getElementById('boot-screen');
-const bootBarFill     = document.getElementById('boot-bar-fill');
-const bootLines       = document.getElementById('boot-lines');
-
 const messagesArea    = document.getElementById('messages-area');
 const chatInput       = document.getElementById('chat-input');
 const sendBtn         = document.getElementById('send-btn');
@@ -619,7 +615,7 @@ themeToggle.addEventListener('click', () => {
 // THREE.JS 3D BACKGROUND
 // ══════════════════════════════════════════════════════════════
 
-(function init3D() {
+(function init3D() { try {
   const canvas   = document.getElementById('bg-canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -637,4 +633,9 @@ themeToggle.addEventListener('click', () => {
 
   const innerGeo = new THREE.IcosahedronGeometry(1.3, 1);
   const innerMat = new THREE.MeshBasicMaterial({ color:0x555555, wireframe:true, transparent:true, opacity:0.07 });
-  const inner    = new 
+  const inner    = new THREE.Mesh(innerGeo, innerMat);
+  scene.add(inner);
+
+  const t1 = new THREE.Mesh(
+    new THREE.TorusGeometry(2.65, 0.005, 4, 120),
+    new THREE.MeshBasicMaterial({ color:0xffffff, transp
