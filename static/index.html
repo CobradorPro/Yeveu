@@ -9,26 +9,14 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 
   <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- ── Boot Screen ─────────────────────────────────────── -->
-  <div class="boot-screen" id="boot-screen">
-    <div class="boot-inner">
-      <div class="boot-logo">◈</div>
-      <div class="boot-name">SYS<span>//</span>CONSULTA</div>
-      <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
-      <div class="boot-lines" id="boot-lines">
-        <span>INICIANDO SISTEMA...</span>
-      </div>
-    </div>
-  </div>
 
   <!-- ── 3D Canvas ───────────────────────────────────────── -->
   <canvas id="bg-canvas"></canvas>
