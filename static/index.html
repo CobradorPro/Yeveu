@@ -1,185 +1,161 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SYS//CONSULTA — Sistema de Consulta Integrada via Telegram" />
-  <title>SYS // CONSULTA</title>
-
-  <!-- Fonts -->
+  <title>Consulta Pro — Intelligence Platform</title>
+  <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-
-  <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-  <!-- ── 3D Canvas ───────────────────────────────────────── -->
-  <canvas id="bg-canvas"></canvas>
+  <!-- Ambient background -->
+  <div class="ambient-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
 
-  <!-- ── Noise Overlay ───────────────────────────────────── -->
-  <div class="noise-overlay"></div>
+  <!-- App Shell -->
+  <div class="app-shell">
 
-  <!-- ── Scanlines ───────────────────────────────────────── -->
-  <div class="scanlines"></div>
-
-  <!-- ── Top Bar ─────────────────────────────────────────── -->
-  <header class="topbar" id="topbar">
-    <div class="topbar-left">
-      <span class="logo-mark">◈</span>
-      <span class="logo-text">SYS<span class="logo-slash">//</span>CONSULTA</span>
-    </div>
-
-    <div class="topbar-center" id="topbar-center">
-      <!-- Auth banner — aparece só durante autenticação -->
-      <div class="auth-banner" id="auth-banner" style="display:none">
-        <span class="auth-banner-dot"></span>
-        <span class="auth-banner-text" id="auth-banner-text">AGUARDANDO CÓDIGO</span>
-      </div>
-    </div>
-
-    <div class="topbar-right">
-      <div class="status-pill" id="status-pill">
-        <div class="status-dot" id="status-dot"></div>
-        <span class="status-label" id="status-label">CONECTANDO</span>
-      </div>
-      <button id="theme-toggle" class="theme-btn" title="Alternar tema">
-        <span class="theme-icon-dark">◐</span>
-        <span class="theme-icon-light">◑</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- ── Main Layout ─────────────────────────────────────── -->
-  <main class="main-layout" id="main-layout">
-
-    <!-- ── Chat Panel ────────────────────────────────────── -->
-    <section class="chat-panel">
-
-      <div class="chat-header">
-        <div class="chat-title-group">
-          <h1 class="chat-title">TERMINAL</h1>
-          <span class="chat-subtitle">Consulta integrada via Telegram</span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
-        <div class="chat-meta">
-          <span class="session-label">SESSION</span>
-          <span class="session-id" id="session-id">--</span>
+        <div class="brand-text">
+          <span class="brand-name">Consulta Pro</span>
+          <span class="brand-tag">v2.1</span>
         </div>
       </div>
 
-      <!-- Messages -->
-      <div class="messages-area" id="messages-area">
-        <!-- Mensagens injetadas pelo script.js -->
-      </div>
-
-      <!-- Typing indicator -->
-      <div class="typing-indicator" id="typing-indicator">
-        <div class="typing-dots">
-          <span></span><span></span><span></span>
-        </div>
-        <span class="typing-text">consultando telegram...</span>
-      </div>
-
-      <!-- Input area -->
-      <div class="input-area" id="input-area">
-
-        <!-- Auth mode label — só aparece durante auth -->
-        <div class="input-mode-label" id="input-mode-label" style="display:none">
-          <span class="input-mode-icon" id="input-mode-icon">🔐</span>
-          <span class="input-mode-text" id="input-mode-text">MODO AUTENTICAÇÃO</span>
-        </div>
-
-        <div class="input-wrapper" id="input-wrapper">
-          <span class="input-prefix" id="input-prefix">›</span>
-          <input
-            type="text"
-            id="chat-input"
-            class="chat-input"
-            placeholder="Digite um comando:  /placa  /nome  /cpf"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            spellcheck="false"
-          />
-          <button class="send-btn" id="send-btn" title="Enviar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Hints de comandos (ocultas no modo auth) -->
-        <div class="input-hints" id="input-hints">
-          <span data-cmd="/placa ">/placa [ABC1234]</span>
-          <span data-cmd="/nome ">/nome [Nome Completo]</span>
-          <span data-cmd="/cpf ">/cpf [00000000000]</span>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ── Result Panel ───────────────────────────────────── -->
-    <aside class="result-panel" id="result-panel">
-      <div class="result-panel-inner">
-
-        <div class="result-header">
-          <span class="result-tag">OUTPUT</span>
-          <div class="result-scan-line"></div>
-        </div>
-
-        <!-- Estado vazio -->
-        <div class="result-empty" id="result-empty">
-          <div class="result-empty-icon">⬡</div>
-          <p>Aguardando consulta</p>
-          <span>Os resultados aparecerão aqui</span>
-        </div>
-
-        <!-- Estado de autenticação pendente (visível no painel) -->
-        <div class="result-auth-state" id="result-auth-state" style="display:none">
-          <div class="ras-icon">◉</div>
-          <p class="ras-title">AUTENTICAÇÃO</p>
-          <span class="ras-desc" id="ras-desc">Verificação necessária</span>
-          <div class="ras-steps">
-            <div class="ras-step" id="ras-step-1">
-              <div class="ras-step-dot active"></div>
-              <span>Enviar código SMS</span>
-            </div>
-            <div class="ras-step" id="ras-step-2">
-              <div class="ras-step-dot"></div>
-              <span>Verificar código</span>
-            </div>
-            <div class="ras-step" id="ras-step-3">
-              <div class="ras-step-dot"></div>
-              <span>Sessão salva</span>
-            </div>
+      <nav class="sidebar-nav">
+        <span class="nav-label">Comandos</span>
+        <button class="nav-cmd active" data-cmd="/placa ">
+          <span class="cmd-icon">🚗</span>
+          <div class="cmd-info">
+            <span class="cmd-name">Placa</span>
+            <span class="cmd-desc">/placa [número]</span>
           </div>
-        </div>
+        </button>
+        <button class="nav-cmd" data-cmd="/nome ">
+          <span class="cmd-icon">👤</span>
+          <div class="cmd-info">
+            <span class="cmd-name">Nome</span>
+            <span class="cmd-desc">/nome [nome completo]</span>
+          </div>
+        </button>
+        <button class="nav-cmd" data-cmd="/cpf ">
+          <span class="cmd-icon">🪪</span>
+          <div class="cmd-info">
+            <span class="cmd-name">CPF</span>
+            <span class="cmd-desc">/cpf [documento]</span>
+          </div>
+        </button>
+      </nav>
 
-        <!-- Dados do resultado -->
-        <div class="result-data" id="result-data" style="display:none">
-          <div class="result-type-badge" id="result-type-badge">RESULTADO</div>
-          <div class="result-fields" id="result-fields"></div>
-          <div class="result-timestamp" id="result-timestamp"></div>
-        </div>
-
-        <!-- Anel decorativo -->
-        <div class="result-pulse-ring" id="result-pulse-ring"></div>
-
+      <div class="sidebar-footer">
+        <div class="status-dot"></div>
+        <span>Backend conectado</span>
       </div>
     </aside>
 
-  </main>
+    <!-- Main Panel -->
+    <main class="main-panel">
 
-  <!-- ── Corner decorations ──────────────────────────────── -->
-  <div class="corner-tl"></div>
-  <div class="corner-br"></div>
+      <!-- Header -->
+      <header class="chat-header">
+        <div class="header-left">
+          <div class="header-avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">Intelligence Terminal</h1>
+            <p class="header-subtitle">Consulta veicular e cadastral em tempo real</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-stat">
+            <span class="stat-num" id="queryCount">0</span>
+            <span class="stat-lbl">consultas</span>
+          </div>
+          <div class="header-divider"></div>
+          <button class="btn-clear" id="btnClear" title="Limpar conversa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Window -->
+      <div class="chat-window" id="chatWindow">
+        <div class="chat-messages" id="chatMessages">
+
+          <!-- Welcome State -->
+          <div class="welcome-state" id="welcomeState">
+            <div class="welcome-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h2 class="welcome-title">Pronto para consultar</h2>
+            <p class="welcome-desc">Digite um comando ou selecione um atalho no painel lateral para iniciar uma consulta.</p>
+            <div class="welcome-chips">
+              <button class="chip" data-cmd="/placa FLR7671">/placa FLR7671</button>
+              <button class="chip" data-cmd="/nome João Silva">/nome João Silva</button>
+              <button class="chip" data-cmd="/cpf 12345678900">/cpf 12345678900</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-wrapper">
+          <div class="input-prefix" id="inputPrefix">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <input
+            type="text"
+            id="chatInput"
+            class="chat-input"
+            placeholder="Digite /placa, /nome ou /cpf..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="send-btn" id="sendBtn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">
+          <span>Pressione <kbd>Enter</kbd> para enviar</span>
+          <span class="hint-sep">·</span>
+          <span id="apiEndpoint" class="api-url">http://localhost:5000/chat</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
 
   <script src="script.js"></script>
 </body>
