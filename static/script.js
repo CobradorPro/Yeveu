@@ -70,40 +70,17 @@ async function runBootSequence() {
     'INICIALIZANDO TELETHON...',
     'ABRINDO FLASK SERVER...',
     'VERIFICANDO SESSÃO...',
-    'CONECTANDO AO TELEGRAM...',
+    'SISTEMA PRONTO',
   ];
 
   for (let i = 0; i < lines.length; i++) {
-    await sleep(280);
+    await sleep(220);
     bootLines.innerHTML = `<span>${lines[i]}</span>`;
-    bootBarFill.style.width = `${((i + 1) / lines.length) * 85}%`;
+    bootBarFill.style.width = `${((i + 1) / lines.length) * 100}%`;
   }
 
-  // Tenta conectar de verdade
-  const connected = await waitForServer();
-
-  bootBarFill.style.width = '100%';
-  await sleep(200);
-
-  if (connected) {
-    bootLines.innerHTML = '<span style="color:#888">SISTEMA PRONTO</span>';
-  } else {
-    bootLines.innerHTML = '<span style="color:#555">SERVIDOR OFFLINE — VERIFICANDO...</span>';
-  }
-
-  await sleep(500);
+  await sleep(300);
   bootScreen.classList.add('hidden');
-}
-
-async function waitForServer(attempts = 12) {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const r = await fetch(`${API_BASE}/api/status`);
-      if (r.ok) return true;
-    } catch { /* server not up yet */ }
-    await sleep(600);
-  }
-  return false;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -647,4 +624,17 @@ themeToggle.addEventListener('click', () => {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setC
+  renderer.setClearColor(0x000000, 0);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 100);
+  camera.position.z = 5;
+
+  const icoGeo  = new THREE.IcosahedronGeometry(1.85, 1);
+  const icoMat  = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe:true, transparent:true, opacity:0.11 });
+  const ico     = new THREE.Mesh(icoGeo, icoMat);
+  scene.add(ico);
+
+  const innerGeo = new THREE.IcosahedronGeometry(1.3, 1);
+  const innerMat = new THREE.MeshBasicMaterial({ color:0x555555, wireframe:true, transparent:true, opacity:0.07 });
+  const inner    = new 
