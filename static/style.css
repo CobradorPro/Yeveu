@@ -718,12 +718,12 @@ html, body {
   transition: all 0.18s ease;
   box-shadow: 0 2px 8px rgba(31, 111, 235, 0.35);
 }
-.send-btn:hover:not(:disabled) {
+.send-btn:hover:not(.btn-inactive):not(.loading) {
   background: var(--blue-bright);
   transform: scale(1.04);
   box-shadow: 0 4px 16px rgba(31, 111, 235, 0.5);
 }
-.send-btn:disabled {
+.send-btn.btn-inactive {
   background: var(--bg-hover);
   color: var(--text-muted);
   cursor: not-allowed;
@@ -788,4 +788,4 @@ kbd {
   .header-stat     { display: none; }
   .header-divider  { display: none; }
    }
-                              
+   
