@@ -1,791 +1,516 @@
-/* ============================================================
-   CONSULTA PRO — Design System
-   Refined Intelligence Platform
-   ============================================================ */
+/* SYS//CONSULTA - script.js */
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+// ── DOM ───────────────────────────────────────────────────────
+var msgsEl      = document.getElementById('msgs');
+var inp         = document.getElementById('inp');
+var sbtn        = document.getElementById('sbtn');
+var typingEl    = document.getElementById('typing');
+var typingTxt   = document.getElementById('typing-txt');
+var inpRow      = document.getElementById('inp-row');
+var inpPre      = document.getElementById('inp-pre');
+var inpMode     = document.getElementById('inp-mode');
+var inpModeIcon = document.getElementById('inp-mode-icon');
+var inpModeTxt  = document.getElementById('inp-mode-txt');
+var hintsEl     = document.getElementById('hints');
 
-:root {
-  /* Core Palette */
-  --bg-base:       #080c14;
-  --bg-surface:    #0d1421;
-  --bg-elevated:   #111927;
-  --bg-overlay:    #16202e;
-  --bg-hover:      #1c2a3a;
+var outEmpty    = document.getElementById('out-empty');
+var outAuth     = document.getElementById('out-auth');
+var outData     = document.getElementById('out-data');
+var dataFields  = document.getElementById('data-fields');
+var dataBadge   = document.getElementById('data-badge');
+var dataTs      = document.getElementById('data-ts');
+var pulseEl     = document.getElementById('pulse');
+var authDescEl  = document.getElementById('auth-desc');
+var s1          = document.getElementById('s1');
+var s2          = document.getElementById('s2');
+var s3          = document.getElementById('s3');
 
-  /* Borders */
-  --border-subtle: rgba(255,255,255,0.05);
-  --border-soft:   rgba(255,255,255,0.08);
-  --border-mid:    rgba(255,255,255,0.12);
+var sdot        = document.getElementById('sdot');
+var slabel      = document.getElementById('slabel');
+var authBanner  = document.getElementById('auth-banner');
+var abText      = document.getElementById('ab-text');
+var tbtn        = document.getElementById('tbtn');
+var sessId      = document.getElementById('sess-id');
 
-  /* Brand Blue */
-  --blue-dim:      #0d2744;
-  --blue-mid:      #1a4a7a;
-  --blue-core:     #1f6feb;
-  --blue-bright:   #4d94ff;
-  --blue-glow:     rgba(31, 111, 235, 0.18);
-  --blue-glow-lg:  rgba(31, 111, 235, 0.08);
+// ── State ─────────────────────────────────────────────────────
+var authMode        = null;
+var authStarted     = false;
+var busy            = false;
+var SESSION         = Math.random().toString(36).slice(2,8).toUpperCase();
+sessId.textContent  = SESSION;
 
-  /* Text */
-  --text-primary:  #e6edf3;
-  --text-secondary:#8b949e;
-  --text-muted:    #4a5568;
-  --text-accent:   #4d94ff;
+// ── Helpers ───────────────────────────────────────────────────
+function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 
-  /* Status */
-  --green-soft:    rgba(35, 197, 94, 0.12);
-  --green-text:    #3fb950;
-  --amber-soft:    rgba(210, 153, 34, 0.12);
-  --amber-text:    #d29922;
-  --red-soft:      rgba(248, 81, 73, 0.12);
-  --red-text:      #f85149;
-
-  /* Spacing */
-  --sidebar-w:     260px;
-  --radius-sm:     6px;
-  --radius-md:     10px;
-  --radius-lg:     14px;
-  --radius-xl:     18px;
-
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
-  --shadow-md:  0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
-  --shadow-glow: 0 0 24px var(--blue-glow);
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-/* ── Base ── */
-html, body {
-  height: 100%;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+function scrollEnd() {
+  msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
-/* ── Ambient Background ── */
-.ambient-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.ambient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.25;
-}
-.orb-1 {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, #1f6feb 0%, transparent 70%);
-  top: -150px; left: -100px;
-  animation: orbFloat 18s ease-in-out infinite alternate;
-}
-.orb-2 {
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, #0d4f9e 0%, transparent 70%);
-  bottom: -100px; right: -50px;
-  animation: orbFloat 22s ease-in-out infinite alternate-reverse;
-}
-.grid-overlay {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-@keyframes orbFloat {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(30px, 40px) scale(1.08); }
+// ── Status ────────────────────────────────────────────────────
+function setStatus(state, text) {
+  sdot.className     = 'sdot ' + state;
+  slabel.textContent = text;
 }
 
-/* ── App Shell ── */
-.app-shell {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
+function showBanner(text) {
+  abText.textContent = text;
+  authBanner.style.display = 'flex';
+  document.querySelector('.main').style.paddingTop = '84px';
 }
 
-/* ============================================================
-   SIDEBAR
-   ============================================================ */
-.sidebar {
-  width: var(--sidebar-w);
-  flex-shrink: 0;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  padding: 20px 0;
-  gap: 0;
+function hideBanner() {
+  authBanner.style.display = 'none';
+  document.querySelector('.main').style.paddingTop = '';
 }
 
-/* Brand */
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.brand-icon {
-  width: 34px; height: 34px;
-  background: linear-gradient(135deg, var(--blue-mid), var(--blue-core));
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  box-shadow: 0 0 16px var(--blue-glow);
-  flex-shrink: 0;
-}
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-.brand-name {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-.brand-tag {
-  font-size: 10px;
-  font-family: 'DM Mono', monospace;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
+// ── Input mode ────────────────────────────────────────────────
+function setMode(mode) {
+  authMode = mode;
+
+  if (mode === 'code') {
+    inp.placeholder    = 'Digite o código recebido no Telegram...';
+    inp.type           = 'text';
+    inpPre.textContent = '🔐';
+    inpModeIcon.textContent = '📲';
+    inpModeTxt.textContent  = 'MODO AUTENTICAÇÃO — CÓDIGO SMS';
+    inpMode.classList.add('show');
+    hintsEl.classList.add('hide');
+    inpRow.classList.add('auth-glow');
+    setDis(false);
+    inp.focus();
+
+  } else if (mode === '2fa') {
+    inp.placeholder    = 'Digite sua senha de verificação em dois fatores...';
+    inp.type           = 'password';
+    inpPre.textContent = '🔑';
+    inpModeIcon.textContent = '🔑';
+    inpModeTxt.textContent  = 'MODO AUTENTICAÇÃO — SENHA 2FA';
+    inpMode.classList.add('show');
+    hintsEl.classList.add('hide');
+    inpRow.classList.add('auth-glow');
+    setDis(false);
+    inp.focus();
+
+  } else {
+    inp.placeholder    = 'Digite um comando:  /placa  /nome  /cpf';
+    inp.type           = 'text';
+    inpPre.textContent = '›';
+    inpMode.classList.remove('show');
+    hintsEl.classList.remove('hide');
+    inpRow.classList.remove('auth-glow');
+    authMode = null;
+    setDis(false);
+  }
 }
 
-/* Nav */
-.sidebar-nav {
-  flex: 1;
-  padding: 20px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.nav-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 0 8px;
-  margin-bottom: 8px;
-}
-.nav-cmd {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 0.18s ease;
-  text-align: left;
-  width: 100%;
-}
-.nav-cmd:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-soft);
-}
-.nav-cmd.active {
-  background: var(--blue-dim);
-  border-color: rgba(31, 111, 235, 0.3);
-  color: var(--blue-bright);
-}
-.cmd-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-.cmd-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.cmd-name {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.2;
-}
-.cmd-desc {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-.nav-cmd.active .cmd-desc {
-  color: rgba(77, 148, 255, 0.6);
+function setDis(v) {
+  inp.disabled      = v;
+  sbtn.disabled     = v;
+  sbtn.style.opacity = v ? '0.3' : '1';
 }
 
-/* Footer */
-.sidebar-footer {
-  padding: 16px 20px 0;
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-.status-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--green-text);
-  box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
-  animation: statusPulse 2.5s ease-in-out infinite;
-}
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(63, 185, 80, 0.5); }
-  50%       { opacity: 0.6; box-shadow: 0 0 4px rgba(63, 185, 80, 0.2); }
+// ── Output panel ──────────────────────────────────────────────
+function showOutEmpty() {
+  outEmpty.style.display = 'flex';
+  outAuth.classList.remove('show');
+  outData.classList.remove('show');
+  pulseEl.classList.remove('show');
 }
 
-/* ============================================================
-   MAIN PANEL
-   ============================================================ */
-.main-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-base);
+function showOutAuth(step) {
+  outEmpty.style.display = 'none';
+  outData.classList.remove('show');
+  outAuth.classList.add('show');
+  pulseEl.classList.remove('show');
+
+  [s1,s2,s3].forEach(function(s){ s.classList.remove('active','done'); });
+
+  if (step === 'code') {
+    authDescEl.textContent = 'Insira o código SMS enviado ao seu Telegram';
+    s1.classList.add('active');
+  } else if (step === '2fa') {
+    authDescEl.textContent = 'Verificação em dois fatores necessária';
+    s1.classList.add('done'); s2.classList.add('active');
+  } else if (step === 'done') {
+    authDescEl.textContent = 'Sessão salva com sucesso!';
+    s1.classList.add('done'); s2.classList.add('done'); s3.classList.add('active');
+  }
 }
 
-/* ── Header ── */
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 28px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.header-avatar {
-  width: 36px; height: 36px;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--blue-bright);
-}
-.header-title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-.header-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 1px;
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.header-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-.stat-num {
-  font-family: 'DM Mono', monospace;
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--blue-bright);
-  line-height: 1;
-}
-.stat-lbl {
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-.header-divider {
-  width: 1px; height: 28px;
-  background: var(--border-soft);
-}
-.btn-clear {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-soft);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.18s ease;
-}
-.btn-clear:hover {
-  border-color: var(--red-text);
-  color: var(--red-text);
-  background: var(--red-soft);
+function showOutData(data, label) {
+  outEmpty.style.display = 'none';
+  outAuth.classList.remove('show');
+  outData.classList.add('show');
+  outData.classList.remove('alive');
+  dataBadge.textContent = label || 'RESULTADO';
+  dataFields.innerHTML  = '';
+
+  var fields = toFields(data);
+  fields.forEach(function(f, i) {
+    var row = document.createElement('div');
+    row.className = 'fr';
+    row.style.animationDelay = (i * 0.07) + 's';
+    row.innerHTML = '<span class="fl">' + esc(f.label) + '</span><span class="fv">' + esc(f.value) + '</span>';
+    dataFields.appendChild(row);
+  });
+
+  var now = new Date();
+  dataTs.textContent = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+  pulseEl.classList.add('show');
+
+  setTimeout(function(){ outData.classList.add('alive'); }, fields.length * 70 + 700);
 }
 
-/* ── Chat Window ── */
-.chat-window {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 28px;
-}
-.chat-messages {
-  max-width: 780px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding-bottom: 8px;
-}
-
-/* ── Welcome State ── */
-.welcome-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 60px 24px;
-  gap: 16px;
-  animation: fadeSlideUp 0.5s ease forwards;
-}
-.welcome-icon {
-  width: 64px; height: 64px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--blue-bright);
-  margin-bottom: 4px;
-}
-.welcome-title {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-}
-.welcome-desc {
-  font-size: 14px;
-  color: var(--text-secondary);
-  max-width: 380px;
-  line-height: 1.7;
-}
-.welcome-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 8px;
-}
-.chip {
-  padding: 7px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 99px;
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-.chip:hover {
-  background: var(--blue-dim);
-  border-color: rgba(31, 111, 235, 0.4);
-  color: var(--blue-bright);
-  transform: translateY(-1px);
+function toFields(data) {
+  if (Array.isArray(data)) {
+    return data.map(function(x, i) {
+      return { label: String(x.label || x.key || 'CAMPO ' + (i+1)).toUpperCase(), value: String(x.value != null ? x.value : '') };
+    });
+  }
+  if (data && typeof data === 'object') {
+    return Object.keys(data).map(function(k) {
+      return { label: k.replace(/_/g,' ').toUpperCase(), value: String(data[k]) };
+    });
+  }
+  return [{ label: 'RESPOSTA', value: String(data) }];
 }
 
-/* ── Message Bubbles ── */
-.message {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  animation: fadeSlideUp 0.3s ease forwards;
-  opacity: 0;
-}
-.message-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 0.03em;
-}
-.meta-avatar {
-  width: 18px; height: 18px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-}
-.message.user .meta-avatar { background: var(--blue-mid); color: var(--blue-bright); }
-.message.bot  .meta-avatar { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-soft); }
-
-.message.user { align-items: flex-end; }
-.message.bot  { align-items: flex-start; }
-
-.message-bubble {
-  max-width: 72%;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
-  font-size: 14px;
-  line-height: 1.65;
-  word-break: break-word;
-}
-.message.user .message-bubble {
-  background: var(--blue-core);
-  color: #fff;
-  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  box-shadow: 0 4px 20px rgba(31, 111, 235, 0.3);
-}
-.message.bot .message-bubble {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
-}
-.message.bot .message-bubble.error-bubble {
-  background: var(--red-soft);
-  border-color: rgba(248, 81, 73, 0.25);
-  color: var(--red-text);
+function cmdType(cmd) {
+  if (/^\/placa/i.test(cmd)) return 'PLACA';
+  if (/^\/cpf/i.test(cmd))   return 'CPF';
+  if (/^\/nome/i.test(cmd))  return 'NOME';
+  return 'CONSULTA';
 }
 
-/* ── Loading Bubble ── */
-.loading-bubble {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
-  width: fit-content;
-  animation: fadeSlideUp 0.25s ease forwards;
-}
-.loading-dots {
-  display: flex;
-  gap: 4px;
-}
-.loading-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--blue-bright);
-  animation: dotBounce 1.2s ease-in-out infinite;
-}
-.loading-dot:nth-child(2) { animation-delay: 0.15s; }
-.loading-dot:nth-child(3) { animation-delay: 0.3s; }
-.loading-text {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-family: 'DM Mono', monospace;
-}
-@keyframes dotBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-  30%            { transform: translateY(-5px); opacity: 1; }
+// ── Messages ──────────────────────────────────────────────────
+function addMsg(text, role, isHTML) {
+  var wrap   = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  var lbl    = document.createElement('span');
+  lbl.className   = 'ml';
+  lbl.textContent = role === 'user' ? 'VOCÊ' : 'SISTEMA';
+  var bubble = document.createElement('div');
+  bubble.className = 'mb';
+  if (isHTML) {
+    bubble.innerHTML = text;
+  } else if (role === 'user') {
+    bubble.innerHTML = esc(text).replace(/^(\/\S+)/, function(m){ return '<span class="ctag">' + m + '</span>'; });
+  } else {
+    bubble.textContent = text;
+  }
+  wrap.appendChild(lbl);
+  wrap.appendChild(bubble);
+  msgsEl.appendChild(wrap);
+  scrollEnd();
+  return bubble;
 }
 
-/* ── Data Card ── */
-.data-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  width: 100%;
-  max-width: 520px;
-  animation: cardReveal 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
-  opacity: 0;
-  transform: translateY(8px);
-  box-shadow: var(--shadow-md);
-}
-@keyframes cardReveal {
-  to { opacity: 1; transform: translateY(0); }
+async function typeMsg(text, speed) {
+  speed = speed || 14;
+  var bubble = addMsg('', 'bot');
+  for (var i = 0; i < text.length; i++) {
+    bubble.textContent += text[i];
+    scrollEnd();
+    await sleep(speed);
+  }
 }
 
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, var(--blue-dim), transparent);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.card-icon {
-  font-size: 18px;
-  line-height: 1;
-}
-.card-title {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--blue-bright);
-}
-.card-badge {
-  padding: 3px 8px;
-  background: var(--green-soft);
-  border: 1px solid rgba(63, 185, 80, 0.25);
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--green-text);
-  text-transform: uppercase;
+function addAuthPrompt(text, icon) {
+  var wrap   = document.createElement('div');
+  wrap.className = 'msg bot';
+  var lbl    = document.createElement('span');
+  lbl.className = 'ml'; lbl.textContent = 'SISTEMA';
+  var bubble = document.createElement('div');
+  bubble.className = 'mb auth-bub';
+  bubble.innerHTML = '<div class="auth-bub-ico">' + (icon||'📲') + '</div><div class="auth-bub-txt">' + esc(text) + '</div>';
+  wrap.appendChild(lbl); wrap.appendChild(bubble);
+  msgsEl.appendChild(wrap); scrollEnd();
 }
 
-.card-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border-subtle);
+function showTyping(text) {
+  typingTxt.textContent = text || 'aguardando...';
+  typingEl.classList.add('show');
+  scrollEnd();
 }
-.card-field {
-  background: var(--bg-elevated);
-  padding: 14px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: background 0.15s ease;
-}
-.card-field:hover {
-  background: var(--bg-overlay);
-}
-.card-field.full-width {
-  grid-column: span 2;
-}
-.field-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.field-value {
-  font-family: 'DM Mono', monospace;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: 0.01em;
-}
-.field-value.highlight {
-  color: var(--blue-bright);
-  font-size: 16px;
-  font-weight: 600;
+function hideTyping() { typingEl.classList.remove('show'); }
+
+// ── Auth ──────────────────────────────────────────────────────
+async function startAuth(errMsg) {
+  authStarted = true;
+  setDis(true);
+  setStatus('offline', 'AUTH PENDENTE');
+  showBanner('AGUARDANDO CÓDIGO SMS');
+  showOutAuth('code');
+  await sleep(300);
+  addAuthPrompt('Primeiro acesso detectado.\nUm código foi enviado para o seu Telegram.\n\nDigite o código abaixo:', '📲');
+  if (errMsg) await typeMsg('⚠ ' + errMsg, 12);
+  setMode('code');
 }
 
-.card-footer {
-  padding: 10px 18px;
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: 'DM Mono', monospace;
-}
-.card-footer-ts {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.card-footer-ts::before {
-  content: '';
-  display: block;
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--green-text);
+async function sendCode(code) {
+  setDis(true);
+  showTyping('verificando código...');
+  try {
+    var r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step: 'code', value: code })
+    });
+    var j = await r.json();
+    hideTyping();
+    if (!r.ok || j.error) { await typeMsg('⚠ ' + (j.error || 'Erro.'), 12); setMode('code'); return; }
+    await typeMsg('Código enviado. Verificando...', 14);
+    await pollAuth();
+  } catch(e) {
+    hideTyping(); await typeMsg('Erro de conexão.', 12); setMode('code');
+  }
 }
 
-/* ── Raw Text Response ── */
-.raw-response {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  max-width: 560px;
-  animation: cardReveal 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
-  opacity: 0;
-}
-.raw-header {
-  padding: 10px 16px;
-  background: var(--bg-overlay);
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: 'DM Mono', monospace;
-  letter-spacing: 0.05em;
-}
-.raw-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--amber-text);
-}
-.raw-body {
-  padding: 16px;
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  color: var(--text-primary);
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-all;
+async function send2FA(pw) {
+  setDis(true);
+  showTyping('verificando senha...');
+  try {
+    var r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step: '2fa', value: pw })
+    });
+    var j = await r.json();
+    hideTyping();
+    if (!r.ok || j.error) { await typeMsg('⚠ ' + (j.error || 'Senha incorreta.'), 12); setMode('2fa'); return; }
+    await typeMsg('Senha enviada. Verificando...', 14);
+    await pollAuth();
+  } catch(e) {
+    hideTyping(); await typeMsg('Erro de conexão.', 12); setMode('2fa');
+  }
 }
 
-/* ── Input Area ── */
-.input-area {
-  padding: 16px 28px 20px;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg);
-  padding: 4px 4px 4px 14px;
-  gap: 8px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.input-wrapper:focus-within {
-  border-color: rgba(31, 111, 235, 0.5);
-  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
-}
-.input-prefix {
-  color: var(--text-muted);
-  display: flex; align-items: center;
-  flex-shrink: 0;
-}
-.chat-input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  color: var(--text-primary);
-  line-height: 1;
-  padding: 10px 0;
-  caret-color: var(--blue-bright);
-}
-.chat-input::placeholder {
-  color: var(--text-muted);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-}
-.send-btn {
-  width: 38px; height: 38px;
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--blue-core);
-  color: #fff;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.18s ease;
-  box-shadow: 0 2px 8px rgba(31, 111, 235, 0.35);
-}
-.send-btn:hover:not(.btn-inactive):not(.loading) {
-  background: var(--blue-bright);
-  transform: scale(1.04);
-  box-shadow: 0 4px 16px rgba(31, 111, 235, 0.5);
-}
-.send-btn.btn-inactive {
-  background: var(--bg-hover);
-  color: var(--text-muted);
-  cursor: not-allowed;
-  box-shadow: none;
-}
-.send-btn.loading {
-  background: var(--bg-hover);
-  cursor: not-allowed;
-}
-.send-btn.loading svg {
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.input-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 8px;
-  padding: 0 2px;
-}
-.hint-sep { opacity: 0.4; }
-.api-url {
-  font-family: 'DM Mono', monospace;
-  color: var(--blue-bright);
-  opacity: 0.6;
-}
-kbd {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 5px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-mid);
-  border-radius: 3px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  color: var(--text-secondary);
+async function pollAuth() {
+  for (var i = 0; i < 40; i++) {
+    await sleep(1500);
+    try {
+      var r = await fetch('/api/status');
+      var d = await r.json();
+      if (d.telegram) {
+        authStarted = false;
+        hideBanner();
+        setStatus('online', 'TELEGRAM OK');
+        showOutAuth('done');
+        await sleep(1500);
+        showOutEmpty();
+        await typeMsg('✅ Login realizado! Sessão salva — próximos acessos são automáticos.', 11);
+        setMode('normal');
+        return;
+      }
+      if (d.auth_error) { await typeMsg('⚠ ' + d.auth_error, 12); setMode(null); return; }
+      if (d.auth_step === '2fa') {
+        showOutAuth('2fa'); showBanner('AGUARDANDO SENHA 2FA');
+        addAuthPrompt('Conta com verificação em dois fatores.\nDigite sua senha do Telegram:', '🔑');
+        setMode('2fa'); return;
+      }
+      if (d.auth_step === 'code') {
+        await typeMsg('Código incorreto. Tente novamente:', 12);
+        showOutAuth('code'); setMode('code'); return;
+      }
+    } catch(e) { /* continua */ }
+  }
+  await typeMsg('Tempo esgotado. Reinicie o servidor.', 12);
 }
 
-/* ── Animations ── */
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+// ── Check status ──────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    var r = await fetch('/api/status');
+    var d = await r.json();
+    if (d.telegram) { setStatus('online', 'TELEGRAM OK'); hideBanner(); return; }
+    if (d.needs_auth && !authStarted) { await startAuth(d.auth_error); return; }
+    if (d.auth_step === '2fa' && !authStarted) {
+      authStarted = true;
+      showOutAuth('2fa'); showBanner('AGUARDANDO SENHA 2FA');
+      addAuthPrompt('Verificação em dois fatores necessária.\nDigite sua senha do Telegram:', '🔑');
+      setMode('2fa'); return;
+    }
+    setStatus('offline', 'CONECTANDO...');
+    setTimeout(checkStatus, 3000);
+  } catch(e) {
+    setStatus('error', 'OFFLINE');
+    setTimeout(checkStatus, 5000);
+  }
 }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
-  .chat-window { padding: 16px; }
-  .input-area { padding: 12px 16px 16px; }
-  .chat-header { padding: 14px 16px; }
-  .card-body { grid-template-columns: 1fr; }
-  .card-field.full-width { grid-column: span 1; }
-  .message-bubble { max-width: 90%; }
+// ── Send ──────────────────────────────────────────────────────
+async function doSend() {
+  var text = inp.value.trim();
+  if (!text) return;
+
+  if (authMode === 'code') {
+    inp.value = '';
+    addMsg('••••••', 'user');
+    await sendCode(text);
+    return;
+  }
+  if (authMode === '2fa') {
+    inp.value = '';
+    addMsg('••••••••', 'user');
+    await send2FA(text);
+    return;
+  }
+
+  if (busy) return;
+  busy = true;
+  inp.value = '';
+  setDis(true);
+  addMsg(text, 'user');
+  await sleep(200);
+  showTyping('consultando telegram...');
+
+  try {
+    var r = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: text, session_id: SESSION })
+    });
+    var j = await r.json();
+    await sleep(300);
+    hideTyping();
+    if (!r.ok || j.error) {
+      await typeMsg('⚠ ' + (j.error || 'Erro HTTP ' + r.status), 12);
+    } else {
+      await typeMsg(j.message || 'Consulta realizada.', 13);
+      if (j.data) showOutData(j.data, cmdType(text));
+    }
+  } catch(e) {
+    hideTyping();
+    await typeMsg('Falha de conexão com o servidor.', 11);
+    setStatus('error', 'OFFLINE');
+  }
+
+  busy = false;
+  setMode('normal');
 }
 
-@media (max-width: 480px) {
-  .header-subtitle { display: none; }
-  .header-stat     { display: none; }
-  .header-divider  { display: none; }
+// ── Events ────────────────────────────────────────────────────
+sbtn.addEventListener('click', doSend);
+
+inp.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    doSend();
+  }
+});
+
+document.querySelectorAll('.hints span').forEach(function(h) {
+  h.addEventListener('click', function() {
+    if (authMode) return;
+    inp.value = h.getAttribute('data-v') || '';
+    inp.focus();
+  });
+});
+
+tbtn.addEventListener('click', function() {
+  var html = document.documentElement;
+  var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  tbtn.textContent = next === 'dark' ? '◐' : '◑';
+  if (window._3d) window._3d();
+});
+
+// ── Welcome ───────────────────────────────────────────────────
+function renderWelcome() {
+  var el = document.createElement('div');
+  el.className = 'welcome';
+  el.innerHTML = [
+    '<h3>◈ SYS//CONSULTA</h3>',
+    '<p>Sistema integrado ao Telegram. Comandos disponíveis:</p>',
+    '<div class="wcmds">',
+    '<div class="wcmd"><strong>/placa</strong> FLR7671 — consulta veicular</div>',
+    '<div class="wcmd"><strong>/nome</strong> João Silva — busca por nome</div>',
+    '<div class="wcmd"><strong>/cpf</strong> 12345678900 — consulta CPF</div>',
+    '</div>'
+  ].join('');
+  msgsEl.appendChild(el);
 }
-   
+
+// ── Three.js ──────────────────────────────────────────────────
+function init3D() {
+  try {
+    if (typeof THREE === 'undefined') return;
+    var canvas   = document.getElementById('bg-canvas');
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+
+    var scene  = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.z = 5;
+
+    var icoM = new THREE.MeshBasicMaterial({ color:0xffffff, wireframe:true, transparent:true, opacity:0.10 });
+    var ico  = new THREE.Mesh(new THREE.IcosahedronGeometry(1.85, 1), icoM);
+    scene.add(ico);
+
+    var inM = new THREE.MeshBasicMaterial({ color:0x555555, wireframe:true, transparent:true, opacity:0.06 });
+    var inr = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3, 1), inM);
+    scene.add(inr);
+
+    var t1M = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.06 });
+    var t1  = new THREE.Mesh(new THREE.TorusGeometry(2.65, 0.005, 4, 120), t1M);
+    t1.rotation.x = Math.PI/4;
+    scene.add(t1);
+
+    var n = 100, pos = new Float32Array(n*3);
+    for (var i=0; i<n; i++) {
+      var th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), rr=2.6+Math.random()*2;
+      pos[i*3]=rr*Math.sin(ph)*Math.cos(th);
+      pos[i*3+1]=rr*Math.sin(ph)*Math.sin(th);
+      pos[i*3+2]=rr*Math.cos(ph);
+    }
+    var pg = new THREE.BufferGeometry();
+    pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    var pM  = new THREE.PointsMaterial({ color:0xffffff, size:0.022, transparent:true, opacity:0.25 });
+    var pts = new THREE.Points(pg, pM);
+    scene.add(pts);
+
+    window._3d = function() {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      var fg = dark ? 0xffffff : 0x111111;
+      icoM.color.setHex(fg); inM.color.setHex(dark?0x555555:0xaaaaaa);
+      t1M.color.setHex(fg); pM.color.setHex(dark?0xffffff:0x444444);
+    };
+
+    var t = 0;
+    function frame() {
+      requestAnimationFrame(frame);
+      t += 0.004;
+      ico.rotation.x = t*0.26; ico.rotation.y = t*0.36;
+      inr.rotation.x =-t*0.20; inr.rotation.z = t*0.17;
+      t1.rotation.z  = t*0.14;
+      pts.rotation.y = t*0.06; pts.rotation.x = t*0.025;
+      ico.scale.setScalar(1 + Math.sin(t*0.75)*0.017);
+      renderer.render(scene, camera);
+    }
+    frame();
+
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  } catch(e) {
+    console.warn('3D desativado:', e);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderWelcome();
+init3D();
+checkStatus();
+inp.focus();
+                
