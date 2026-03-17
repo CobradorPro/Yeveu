@@ -1,507 +1,791 @@
 /* ============================================================
-   CONSULTA PRO — script.js
-   Chat engine + API integration + Data rendering
+   CONSULTA PRO — Design System
+   Refined Intelligence Platform
    ============================================================ */
 
-'use strict';
-
-// ── Config ──────────────────────────────────────────────────
-const CONFIG = {
-  apiUrl: 'http://localhost:5000/chat',     // ← Altere para o endpoint do seu backend
-  requestTimeout: 15000,                    // ms
-  commands: ['/placa', '/nome', '/cpf'],
-};
-
-// ── State ────────────────────────────────────────────────────
-let queryCount = 0;
-let isLoading  = false;
-
-// ── DOM ──────────────────────────────────────────────────────
-const chatMessages  = document.getElementById('chatMessages');
-const chatInput     = document.getElementById('chatInput');
-const sendBtn       = document.getElementById('sendBtn');
-const btnClear      = document.getElementById('btnClear');
-const queryCountEl  = document.getElementById('queryCount');
-const welcomeState  = document.getElementById('welcomeState');
-const apiEndpointEl = document.getElementById('apiEndpoint');
-const navCmds       = document.querySelectorAll('.nav-cmd');
-const chips         = document.querySelectorAll('.chip');
-
-// ── Init ─────────────────────────────────────────────────────
-apiEndpointEl.textContent = CONFIG.apiUrl;
-
-// ── Helpers ──────────────────────────────────────────────────
-function now() {
-  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-function scrollToBottom() {
-  requestAnimationFrame(() => {
-    const win = document.getElementById('chatWindow');
-    win.scrollTo({ top: win.scrollHeight, behavior: 'smooth' });
-  });
+:root {
+  /* Core Palette */
+  --bg-base:       #080c14;
+  --bg-surface:    #0d1421;
+  --bg-elevated:   #111927;
+  --bg-overlay:    #16202e;
+  --bg-hover:      #1c2a3a;
+
+  /* Borders */
+  --border-subtle: rgba(255,255,255,0.05);
+  --border-soft:   rgba(255,255,255,0.08);
+  --border-mid:    rgba(255,255,255,0.12);
+
+  /* Brand Blue */
+  --blue-dim:      #0d2744;
+  --blue-mid:      #1a4a7a;
+  --blue-core:     #1f6feb;
+  --blue-bright:   #4d94ff;
+  --blue-glow:     rgba(31, 111, 235, 0.18);
+  --blue-glow-lg:  rgba(31, 111, 235, 0.08);
+
+  /* Text */
+  --text-primary:  #e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:    #4a5568;
+  --text-accent:   #4d94ff;
+
+  /* Status */
+  --green-soft:    rgba(35, 197, 94, 0.12);
+  --green-text:    #3fb950;
+  --amber-soft:    rgba(210, 153, 34, 0.12);
+  --amber-text:    #d29922;
+  --red-soft:      rgba(248, 81, 73, 0.12);
+  --red-text:      #f85149;
+
+  /* Spacing */
+  --sidebar-w:     260px;
+  --radius-sm:     6px;
+  --radius-md:     10px;
+  --radius-lg:     14px;
+  --radius-xl:     18px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-glow: 0 0 24px var(--blue-glow);
 }
 
-function hideWelcome() {
-  if (welcomeState && welcomeState.parentNode) {
-    welcomeState.style.animation = 'none';
-    welcomeState.style.opacity   = '0';
-    welcomeState.style.transform = 'translateY(-6px)';
-    welcomeState.style.transition = 'opacity 0.2s, transform 0.2s';
-    setTimeout(() => welcomeState.remove(), 220);
-  }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Base ── */
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-function incrementCounter() {
-  queryCount++;
-  queryCountEl.textContent = queryCount;
-  queryCountEl.style.animation = 'none';
-  queryCountEl.offsetHeight; // reflow
-  queryCountEl.style.animation = 'fadeSlideUp 0.3s ease forwards';
+/* ── Ambient Background ── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #1f6feb 0%, transparent 70%);
+  top: -150px; left: -100px;
+  animation: orbFloat 18s ease-in-out infinite alternate;
+}
+.orb-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #0d4f9e 0%, transparent 70%);
+  bottom: -100px; right: -50px;
+  animation: orbFloat 22s ease-in-out infinite alternate-reverse;
+}
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+@keyframes orbFloat {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 40px) scale(1.08); }
 }
 
-// ── Sidebar active state ──────────────────────────────────────
-navCmds.forEach(btn => {
-  btn.addEventListener('click', () => {
-    navCmds.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const cmd = btn.dataset.cmd;
-    chatInput.value = cmd;
-    chatInput.focus();
-    updateSendBtn();
-  });
-});
-
-// ── Chip shortcuts ────────────────────────────────────────────
-chips.forEach(chip => {
-  chip.addEventListener('click', () => {
-    chatInput.value = chip.dataset.cmd;
-    chatInput.focus();
-    updateSendBtn();
-  });
-});
-
-// ── Input logic ───────────────────────────────────────────────
-function updateSendBtn() {
-  const val = chatInput.value.trim();
-  sendBtn.disabled = !val || isLoading;
+/* ── App Shell ── */
+.app-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
 }
 
-chatInput.addEventListener('input', updateSendBtn);
-
-chatInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-    e.preventDefault();
-    handleSend();
-  }
-});
-
-sendBtn.addEventListener('click', () => {
-  if (!isLoading) handleSend();
-});
-
-btnClear.addEventListener('click', () => {
-  clearChat();
-});
-
-// ── Message builders ──────────────────────────────────────────
-function buildUserMessage(text) {
-  const wrap = document.createElement('div');
-  wrap.className = 'message user';
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <span style="font-size:11px;color:var(--text-muted)">${now()}</span>
-      <div class="meta-avatar">U</div>
-    </div>
-    <div class="message-bubble">${escapeHtml(text)}</div>
-  `;
-  return wrap;
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  gap: 0;
 }
 
-function buildLoadingBubble() {
-  const wrap = document.createElement('div');
-  wrap.className = 'message bot';
-  wrap.id = 'loadingMsg';
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="meta-avatar">AI</div>
-      <span style="font-size:11px;color:var(--text-muted)">Processando…</span>
-    </div>
-    <div class="loading-bubble">
-      <div class="loading-dots">
-        <div class="loading-dot"></div>
-        <div class="loading-dot"></div>
-        <div class="loading-dot"></div>
-      </div>
-      <span class="loading-text">consultando base de dados</span>
-    </div>
-  `;
-  return wrap;
+/* Brand */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.brand-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--blue-mid), var(--blue-core));
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  box-shadow: 0 0 16px var(--blue-glow);
+  flex-shrink: 0;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.brand-tag {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
 }
 
-function buildErrorBubble(msg) {
-  const wrap = document.createElement('div');
-  wrap.className = 'message bot';
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="meta-avatar">AI</div>
-      <span style="font-size:11px;color:var(--text-muted)">${now()}</span>
-    </div>
-    <div class="message-bubble error-bubble">⚠ ${escapeHtml(msg)}</div>
-  `;
-  return wrap;
+/* Nav */
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 8px;
+  margin-bottom: 8px;
+}
+.nav-cmd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.18s ease;
+  text-align: left;
+  width: 100%;
+}
+.nav-cmd:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-soft);
+}
+.nav-cmd.active {
+  background: var(--blue-dim);
+  border-color: rgba(31, 111, 235, 0.3);
+  color: var(--blue-bright);
+}
+.cmd-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.cmd-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cmd-name {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.cmd-desc {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.nav-cmd.active .cmd-desc {
+  color: rgba(77, 148, 255, 0.6);
 }
 
-function buildTextBubble(text) {
-  const wrap = document.createElement('div');
-  wrap.className = 'message bot';
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="meta-avatar">AI</div>
-      <span style="font-size:11px;color:var(--text-muted)">${now()}</span>
-    </div>
-    <div class="message-bubble">${escapeHtml(text)}</div>
-  `;
-  return wrap;
+/* Footer */
+.sidebar-footer {
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green-text);
+  box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+  animation: statusPulse 2.5s ease-in-out infinite;
+}
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(63, 185, 80, 0.5); }
+  50%       { opacity: 0.6; box-shadow: 0 0 4px rgba(63, 185, 80, 0.2); }
 }
 
-// ── Data card builder ─────────────────────────────────────────
-function buildDataCard(data, command) {
-  const wrap = document.createElement('div');
-  wrap.className = 'message bot';
-
-  const cardEl = document.createElement('div');
-  cardEl.className = 'data-card';
-
-  const cmd   = (command || '').toLowerCase();
-  let icon    = '📋';
-  let title   = 'Resultado';
-  if (cmd.includes('placa')) { icon = '🚗'; title = 'Consulta Veicular'; }
-  else if (cmd.includes('nome')) { icon = '👤'; title = 'Consulta Cadastral'; }
-  else if (cmd.includes('cpf'))  { icon = '🪪'; title = 'Consulta de Documento'; }
-
-  // Header
-  cardEl.innerHTML = `
-    <div class="card-header">
-      <div class="card-header-left">
-        <span class="card-icon">${icon}</span>
-        <span class="card-title">${title}</span>
-      </div>
-      <span class="card-badge">✓ Encontrado</span>
-    </div>
-    <div class="card-body" id="cardBodyInner"></div>
-    <div class="card-footer">
-      <div class="card-footer-ts">${now()} — resposta em tempo real</div>
-      <span style="font-family:'DM Mono',monospace">ID:${Math.random().toString(36).slice(2,8).toUpperCase()}</span>
-    </div>
-  `;
-
-  const body = cardEl.querySelector('#cardBodyInner');
-
-  // Render fields from object
-  const entries = Object.entries(data);
-  entries.forEach(([key, value], idx) => {
-    const field = document.createElement('div');
-    const isHighlight = idx === 0;
-    const isFullWidth = String(value).length > 30;
-    field.className = `card-field${isFullWidth ? ' full-width' : ''}`;
-    field.innerHTML = `
-      <span class="field-label">${formatLabel(key)}</span>
-      <span class="field-value${isHighlight ? ' highlight' : ''}">${escapeHtml(String(value))}</span>
-    `;
-    body.appendChild(field);
-  });
-
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="meta-avatar">AI</div>
-      <span style="font-size:11px;color:var(--text-muted)">${now()}</span>
-    </div>
-  `;
-  wrap.appendChild(cardEl);
-  return wrap;
+/* ============================================================
+   MAIN PANEL
+   ============================================================ */
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-base);
 }
 
-// ── Raw response builder ──────────────────────────────────────
-function buildRawResponse(text) {
-  const wrap = document.createElement('div');
-  wrap.className = 'message bot';
-  const raw = document.createElement('div');
-  raw.className = 'raw-response';
-  raw.innerHTML = `
-    <div class="raw-header">
-      <div class="raw-dot"></div>
-      <span>resposta do servidor · ${now()}</span>
-    </div>
-    <pre class="raw-body">${escapeHtml(text)}</pre>
-  `;
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="meta-avatar">AI</div>
-      <span style="font-size:11px;color:var(--text-muted)">${now()}</span>
-    </div>
-  `;
-  wrap.appendChild(raw);
-  return wrap;
+/* ── Header ── */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-avatar {
+  width: 36px; height: 36px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue-bright);
+}
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.header-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.stat-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--blue-bright);
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.header-divider {
+  width: 1px; height: 28px;
+  background: var(--border-soft);
+}
+.btn-clear {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s ease;
+}
+.btn-clear:hover {
+  border-color: var(--red-text);
+  color: var(--red-text);
+  background: var(--red-soft);
 }
 
-// ── Core send flow ────────────────────────────────────────────
-async function handleSend() {
-  const text = chatInput.value.trim();
-  if (!text || isLoading) return;
-
-  hideWelcome();
-  setLoading(true);
-
-  // User message
-  chatMessages.appendChild(buildUserMessage(text));
-  chatInput.value = '';
-  updateSendBtn();
-  scrollToBottom();
-
-  // Loading indicator
-  const loadingEl = buildLoadingBubble();
-  chatMessages.appendChild(loadingEl);
-  scrollToBottom();
-
-  try {
-    const response = await fetchWithTimeout(CONFIG.apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
-    }, CONFIG.requestTimeout);
-
-    loadingEl.remove();
-
-    if (!response.ok) {
-      chatMessages.appendChild(buildErrorBubble(`Erro HTTP ${response.status}: ${response.statusText}`));
-    } else {
-      const contentType = response.headers.get('content-type') || '';
-      let resultEl;
-
-      if (contentType.includes('application/json')) {
-        const json = await response.json();
-        // If it's a { response: "..." } wrapper, unwrap and try JSON
-        const payload = json?.response ?? json?.data ?? json?.result ?? json;
-        if (typeof payload === 'string') {
-          resultEl = tryParseAndRender(payload, text);
-        } else if (typeof payload === 'object' && payload !== null) {
-          resultEl = buildDataCard(flattenObject(payload), text);
-        } else {
-          resultEl = buildTextBubble(String(payload));
-        }
-      } else {
-        const raw = await response.text();
-        resultEl = tryParseAndRender(raw, text);
-      }
-
-      chatMessages.appendChild(resultEl);
-      incrementCounter();
-    }
-  } catch (err) {
-    loadingEl.remove();
-    const msg = err.name === 'AbortError'
-      ? 'Tempo esgotado. Verifique se o backend está rodando.'
-      : `Não foi possível conectar ao backend.\n${err.message}`;
-    chatMessages.appendChild(buildErrorBubble(msg));
-  }
-
-  setLoading(false);
-  scrollToBottom();
+/* ── Chat Window ── */
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+.chat-messages {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 8px;
 }
 
-// Attempt to parse raw text as JSON; if so build card, else raw display
-function tryParseAndRender(text, command) {
-  try {
-    const obj = JSON.parse(text);
-    if (typeof obj === 'object' && obj !== null) {
-      return buildDataCard(flattenObject(obj), command);
-    }
-  } catch (_) { /* not json */ }
-
-  // Try to detect key:value lines (structured text)
-  const structured = parseStructuredText(text);
-  if (structured && Object.keys(structured).length >= 2) {
-    return buildDataCard(structured, command);
-  }
-
-  return buildRawResponse(text);
+/* ── Welcome State ── */
+.welcome-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 24px;
+  gap: 16px;
+  animation: fadeSlideUp 0.5s ease forwards;
+}
+.welcome-icon {
+  width: 64px; height: 64px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue-bright);
+  margin-bottom: 4px;
+}
+.welcome-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.welcome-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 380px;
+  line-height: 1.7;
+}
+.welcome-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.chip {
+  padding: 7px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: 99px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.chip:hover {
+  background: var(--blue-dim);
+  border-color: rgba(31, 111, 235, 0.4);
+  color: var(--blue-bright);
+  transform: translateY(-1px);
 }
 
-// Parse "KEY\nVALUE\n..." style text
-function parseStructuredText(text) {
-  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length < 2) return null;
+/* ── Message Bubbles ── */
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeSlideUp 0.3s ease forwards;
+  opacity: 0;
+}
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+.meta-avatar {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+}
+.message.user .meta-avatar { background: var(--blue-mid); color: var(--blue-bright); }
+.message.bot  .meta-avatar { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-soft); }
 
-  const result = {};
-  for (let i = 0; i < lines.length - 1; i += 2) {
-    const key = lines[i];
-    const val = lines[i + 1];
-    // Skip if value looks like another key (all-caps, short)
-    if (key && val) {
-      result[key] = val;
-    }
-  }
-  return Object.keys(result).length > 0 ? result : null;
+.message.user { align-items: flex-end; }
+.message.bot  { align-items: flex-start; }
+
+.message-bubble {
+  max-width: 72%;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+.message.user .message-bubble {
+  background: var(--blue-core);
+  color: #fff;
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 20px rgba(31, 111, 235, 0.3);
+}
+.message.bot .message-bubble {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+}
+.message.bot .message-bubble.error-bubble {
+  background: var(--red-soft);
+  border-color: rgba(248, 81, 73, 0.25);
+  color: var(--red-text);
 }
 
-// Flatten nested objects for card display
-function flattenObject(obj, prefix = '') {
-  const out = {};
-  for (const [k, v] of Object.entries(obj)) {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-      Object.assign(out, flattenObject(v, key));
-    } else {
-      out[key] = Array.isArray(v) ? v.join(', ') : v;
-    }
-  }
-  return out;
+/* ── Loading Bubble ── */
+.loading-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+  width: fit-content;
+  animation: fadeSlideUp 0.25s ease forwards;
+}
+.loading-dots {
+  display: flex;
+  gap: 4px;
+}
+.loading-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--blue-bright);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.loading-dot:nth-child(3) { animation-delay: 0.3s; }
+.loading-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%            { transform: translateY(-5px); opacity: 1; }
 }
 
-// ── Utilities ─────────────────────────────────────────────────
-function fetchWithTimeout(url, options, ms) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, { ...options, signal: ctrl.signal })
-    .finally(() => clearTimeout(timer));
+/* ── Data Card ── */
+.data-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  width: 100%;
+  max-width: 520px;
+  animation: cardReveal 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 0;
+  transform: translateY(8px);
+  box-shadow: var(--shadow-md);
+}
+@keyframes cardReveal {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, var(--blue-dim), transparent);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--blue-bright);
+}
+.card-badge {
+  padding: 3px 8px;
+  background: var(--green-soft);
+  border: 1px solid rgba(63, 185, 80, 0.25);
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--green-text);
+  text-transform: uppercase;
 }
 
-function formatLabel(key) {
-  return key
-    .replace(/[_\-.]/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .toUpperCase();
+.card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-subtle);
+}
+.card-field {
+  background: var(--bg-elevated);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.15s ease;
+}
+.card-field:hover {
+  background: var(--bg-overlay);
+}
+.card-field.full-width {
+  grid-column: span 2;
+}
+.field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.field-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+.field-value.highlight {
+  color: var(--blue-bright);
+  font-size: 16px;
+  font-weight: 600;
 }
 
-function setLoading(val) {
-  isLoading = val;
-  sendBtn.disabled = val;
-  if (val) {
-    sendBtn.classList.add('loading');
-    sendBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </svg>`;
-  } else {
-    sendBtn.classList.remove('loading');
-    sendBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
-    updateSendBtn();
-  }
+.card-footer {
+  padding: 10px 18px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+.card-footer-ts {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.card-footer-ts::before {
+  content: '';
+  display: block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green-text);
 }
 
-function clearChat() {
-  chatMessages.innerHTML = '';
-  queryCount = 0;
-  queryCountEl.textContent = '0';
-
-  // Restore welcome state
-  const ws = document.createElement('div');
-  ws.id = 'welcomeState';
-  ws.className = 'welcome-state';
-  ws.innerHTML = `
-    <div class="welcome-icon">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
-        <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <h2 class="welcome-title">Pronto para consultar</h2>
-    <p class="welcome-desc">Digite um comando ou selecione um atalho no painel lateral para iniciar uma consulta.</p>
-    <div class="welcome-chips">
-      <button class="chip" data-cmd="/placa FLR7671">/placa FLR7671</button>
-      <button class="chip" data-cmd="/nome João Silva">/nome João Silva</button>
-      <button class="chip" data-cmd="/cpf 12345678900">/cpf 12345678900</button>
-    </div>
-  `;
-  chatMessages.appendChild(ws);
-
-  // Rebind chip events
-  ws.querySelectorAll('.chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      chatInput.value = chip.dataset.cmd;
-      chatInput.focus();
-      updateSendBtn();
-    });
-  });
+/* ── Raw Text Response ── */
+.raw-response {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 560px;
+  animation: cardReveal 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 0;
+}
+.raw-header {
+  padding: 10px 16px;
+  background: var(--bg-overlay);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.05em;
+}
+.raw-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--amber-text);
+}
+.raw-body {
+  padding: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
-// ── Demo mode (no backend) ─────────────────────────────────────
-// Intercepts calls when backend is unreachable and shows sample data.
-// Remove this block in production.
-const _originalFetch = window.fetch;
-window.fetch = async function(url, options) {
-  if (String(url).includes('localhost')) {
-    // Try real fetch first; if it fails, return demo data
-    try {
-      return await _originalFetch(url, options);
-    } catch (_) {
-      return buildDemoResponse(options);
-    }
-  }
-  return _originalFetch(url, options);
-};
+/* ── Input Area ── */
+.input-area {
+  padding: 16px 28px 20px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 4px 4px 4px 14px;
+  gap: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-wrapper:focus-within {
+  border-color: rgba(31, 111, 235, 0.5);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
+}
+.input-prefix {
+  color: var(--text-muted);
+  display: flex; align-items: center;
+  flex-shrink: 0;
+}
+.chat-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1;
+  padding: 10px 0;
+  caret-color: var(--blue-bright);
+}
+.chat-input::placeholder {
+  color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+}
+.send-btn {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--blue-core);
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(31, 111, 235, 0.35);
+}
+.send-btn:hover:not(.btn-inactive):not(.loading) {
+  background: var(--blue-bright);
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(31, 111, 235, 0.5);
+}
+.send-btn.btn-inactive {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.send-btn.loading {
+  background: var(--bg-hover);
+  cursor: not-allowed;
+}
+.send-btn.loading svg {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-function buildDemoResponse(options) {
-  const body = JSON.parse(options?.body || '{}');
-  const msg  = (body.message || '').toLowerCase();
-  let demo;
+.input-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding: 0 2px;
+}
+.hint-sep { opacity: 0.4; }
+.api-url {
+  font-family: 'DM Mono', monospace;
+  color: var(--blue-bright);
+  opacity: 0.6;
+}
+kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  border-radius: 3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
 
-  if (msg.includes('/placa')) {
-    const placa = body.message.split(' ').slice(1).join(' ').toUpperCase() || 'FLR7671';
-    demo = {
-      placa,
-      marca_modelo: 'VW TIGUAN 2.0 TSI',
-      ano_fabricacao: '2014',
-      ano_modelo: '2015',
-      cor: 'BRANCA',
-      proprietario: '60437944000152',
-      municipio: 'SÃO PAULO - SP',
-      renavam: '01234567890',
-      situacao: 'REGULAR',
-    };
-  } else if (msg.includes('/nome')) {
-    const nome = body.message.split(' ').slice(1).join(' ') || 'João Silva';
-    demo = {
-      nome: nome.toUpperCase(),
-      cpf: '123.456.789-00',
-      data_nascimento: '15/03/1985',
-      sexo: 'MASCULINO',
-      mae: 'MARIA DA SILVA',
-      municipio: 'CAMPINAS - SP',
-      situacao_cpf: 'REGULAR',
-    };
-  } else if (msg.includes('/cpf')) {
-    const cpf = body.message.split(' ').slice(1).join(' ') || '12345678900';
-    demo = {
-      cpf,
-      nome: 'JOÃO DA SILVA SANTOS',
-      data_nascimento: '22/07/1990',
-      sexo: 'MASCULINO',
-      mae: 'ANA SANTOS',
-      municipio: 'RIO DE JANEIRO - RJ',
-      situacao: 'REGULAR',
-    };
-  } else {
-    demo = { mensagem: `Comando não reconhecido: ${body.message}`, dica: 'Use /placa, /nome ou /cpf' };
-  }
+/* ── Animations ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-  const json = JSON.stringify(demo);
-  return new Response(json, {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-     }
-      
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { display: none; }
+  .chat-window { padding: 16px; }
+  .input-area { padding: 12px 16px 16px; }
+  .chat-header { padding: 14px 16px; }
+  .card-body { grid-template-columns: 1fr; }
+  .card-field.full-width { grid-column: span 1; }
+  .message-bubble { max-width: 90%; }
+}
+
+@media (max-width: 480px) {
+  .header-subtitle { display: none; }
+  .header-stat     { display: none; }
+  .header-divider  { display: none; }
+}
+   
